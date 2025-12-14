@@ -1,175 +1,186 @@
-"""
-Data Preparation Script for BTC Price Prediction
-Creates the Target variable and ensures proper data format
-Run this locally before uploading to GCP
-"""
+import os
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+from pyspark.ml.feature import VectorAssembler, StandardScaler
+from pyspark.ml.classification import RandomForestClassifier
+from pyspark.ml.evaluation import BinaryClassificationEvaluator, MulticlassClassificationEvaluator
+from pyspark.ml import Pipeline
 
-import pandas as pd
-import numpy as np
-from datetime import datetime
+# --- CONFIGURATION ---
+BUCKET_NAME = os.environ.get("BUCKET_NAME")
+INPUT_FILE = f"gs://{BUCKET_NAME}/feature_engineering_output.csv"
+MODEL_OUTPUT = f"gs://{BUCKET_NAME}/models/random_forest_model"
 
-def prepare_btc_data(input_file, output_file):
-    """
-    Prepare BTC data for prediction model
-    
-    Args:
-        input_file: Path to raw CSV file
-        output_file: Path to save prepared CSV
-    """
-    print("Loading data...")
-    df = pd.read_csv(input_file)
-    
-    print(f"Initial shape: {df.shape}")
-    print(f"Columns: {df.columns.tolist()}")
-    
-    # Sort by timestamp
-    df['Timestamp'] = pd.to_datetime(df['Timestamp'])
-    df = df.sort_values('Timestamp').reset_index(drop=True)
-    
-    # Create target variable if not exists
-    if 'Target' not in df.columns:
-        print("\nCreating Target variable...")
-        # Shift close price to get future price (15 minutes ahead)
-        df['Future_Close'] = df['Close'].shift(-1)
-        
-        # Target: 1 if price goes up, 0 if down
-        df['Target'] = (df['Future_Close'] > df['Close']).astype(int)
-        
-        # Remove the last row (no future data)
-        df = df[:-1]
-        
-        # Drop temporary column
-        df = df.drop('Future_Close', axis=1)
-    
-    # Calculate additional features if missing
-    if 'Feat_SMA_5' not in df.columns:
-        print("\nCalculating Simple Moving Averages...")
-        df['Feat_SMA_5'] = df['Close'].rolling(window=5, min_periods=1).mean()
-        df['Feat_SMA_10'] = df['Close'].rolling(window=10, min_periods=1).mean()
-        df['Feat_SMA_15'] = df['Close'].rolling(window=15, min_periods=1).mean()
-    
-    if 'Feat_Vol_Std' not in df.columns:
-        print("\nCalculating Volatility features...")
-        df['Feat_Vol_Std'] = df['Close'].rolling(window=10, min_periods=1).std()
-    
-    if 'Feat_GK_Vol' not in df.columns:
-        print("\nCalculating Garman-Klass Volatility...")
-        # Simplified GK volatility
-        hl = np.log(df['High'] / df['Low']) ** 2
-        co = np.log(df['Close'] / df['Open']) ** 2
-        df['Feat_GK_Vol'] = np.sqrt(0.5 * hl - (2 * np.log(2) - 1) * co)
-    
-    # Handle missing values
-    print("\nHandling missing values...")
-    print(f"Missing values before:\n{df.isnull().sum()}")
-    
-    # Forward fill then backward fill
-    df = df.fillna(method='ffill').fillna(method='bfill')
-    
-    print(f"Missing values after:\n{df.isnull().sum()}")
-    
-    # Ensure proper data types
-    numeric_columns = ['Open', 'High', 'Low', 'Close', 'Volume_BTC', 
-                      'Volume_Currency', 'Weighted_Price', 'Feat_SMA_5',
-                      'Feat_SMA_10', 'Feat_SMA_15', 'Feat_GK_Vol', 'Feat_Vol_Std']
-    
-    for col in numeric_columns:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
-    
-    # Remove any remaining rows with NaN
-    df = df.dropna()
-    
-    # Display statistics
-    print("\n" + "="*60)
-    print("DATA STATISTICS")
-    print("="*60)
-    print(f"Total records: {len(df)}")
-    print(f"\nTarget distribution:")
-    print(df['Target'].value_counts())
-    print(f"\nTarget ratio:")
-    print(df['Target'].value_counts(normalize=True))
-    
-    print("\n" + "="*60)
-    print("FEATURE STATISTICS")
-    print("="*60)
-    print(df[numeric_columns + ['Target']].describe())
-    
-    # Save prepared data
-    print(f"\nSaving prepared data to: {output_file}")
-    df.to_csv(output_file, index=False)
-    print(f"✓ Data saved successfully!")
-    print(f"Final shape: {df.shape}")
-    
-    # Display sample
-    print("\nSample data (first 5 rows):")
-    print(df.head())
-    
-    return df
+# Initialize Spark Session
+spark = SparkSession.builder \
+    .appName("BitcoinRandomForestModel") \
+    .config("spark.sql.adaptive.enabled", "true") \
+    .config("spark.sql.adaptive.coalescePartitions.enabled", "true") \
+    .getOrCreate()
 
-def validate_data(df):
-    """Validate data quality"""
-    print("\n" + "="*60)
-    print("DATA VALIDATION")
-    print("="*60)
-    
-    issues = []
-    
-    # Check for infinite values
-    inf_cols = df.columns[np.isinf(df.select_dtypes(include=[np.number])).any()]
-    if len(inf_cols) > 0:
-        issues.append(f"Infinite values in: {inf_cols.tolist()}")
-    
-    # Check for negative prices
-    price_cols = ['Open', 'High', 'Low', 'Close']
-    for col in price_cols:
-        if col in df.columns and (df[col] <= 0).any():
-            issues.append(f"Negative or zero values in: {col}")
-    
-    # Check price relationships
-    if 'High' in df.columns and 'Low' in df.columns:
-        if (df['High'] < df['Low']).any():
-            issues.append("High < Low in some rows")
-    
-    # Check target balance
-    if 'Target' in df.columns:
-        target_ratio = df['Target'].mean()
-        if target_ratio < 0.3 or target_ratio > 0.7:
-            issues.append(f"Imbalanced target: {target_ratio:.2%} positive class")
-    
-    if issues:
-        print("⚠ WARNINGS:")
-        for issue in issues:
-            print(f"  - {issue}")
-    else:
-        print("✓ All validation checks passed!")
-    
-    return len(issues) == 0
+print("BTC PRICE PREDICTION - RANDOM FOREST MODEL")
+print("="*60)
+print(f"Reading data from: {INPUT_FILE}")
 
-if __name__ == "__main__":
-    import sys
-    
-    if len(sys.argv) < 2:
-        print("Usage: python prepare_data.py <input_csv> [output_csv]")
-        print("\nExample:")
-        print("  python prepare_data.py raw_btc_data.csv btc_data.csv")
-        sys.exit(1)
-    
-    input_file = sys.argv[1]
-    output_file = sys.argv[2] if len(sys.argv) > 2 else "btc_data_prepared.csv"
-    
-    try:
-        df = prepare_btc_data(input_file, output_file)
-        validate_data(df)
-        
-        print("\n" + "="*60)
-        print("✓ DATA PREPARATION COMPLETE")
-        print("="*60)
-        print(f"\nYou can now upload {output_file} to GCP:")
-        print(f"  gsutil cp {output_file} gs://YOUR_BUCKET/data/")
-        
-    except Exception as e:
-        print(f"\n✗ Error: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
+# 1. Load Feature-Engineered Data
+df = spark.read.csv(INPUT_FILE, header=True, inferSchema=True)
+
+print(f"Initial data loaded: {df.count()} rows")
+df.printSchema()
+
+# 2. Define Feature Columns
+feature_cols = [
+    'Open', 'High', 'Low', 'Close',
+    'Volume_BTC', 'Volume_Currency', 'Weighted_Price',
+    'Feat_SMA_5', 'Feat_SMA_10', 'Feat_SMA_15',
+    'Feat_GK_Vol', 'Feat_Vol_Std'
+]
+
+# 3. Data Cleaning
+print("\nCleaning data...")
+df = df.na.drop()
+
+print(f"Data after cleaning: {df.count()} rows")
+
+# Show target distribution
+print("\nTarget Distribution:")
+df.groupBy("Target").count().show()
+
+# 4. Build ML Pipeline
+print("\nBuilding ML Pipeline...")
+
+# Assemble features into a vector
+assembler = VectorAssembler(
+    inputCols=feature_cols,
+    outputCol="features_raw",
+    handleInvalid="skip"
+)
+
+# Scale features
+scaler = StandardScaler(
+    inputCol="features_raw",
+    outputCol="features",
+    withStd=True,
+    withMean=True
+)
+
+# Random Forest Classifier
+rf = RandomForestClassifier(
+    featuresCol="features",
+    labelCol="Target",
+    predictionCol="prediction",
+    probabilityCol="probability",
+    numTrees=100,
+    maxDepth=10,
+    maxBins=32,
+    minInstancesPerNode=1,
+    seed=42,
+    subsamplingRate=0.8,
+    featureSubsetStrategy="auto"
+)
+
+# Create pipeline
+pipeline = Pipeline(stages=[assembler, scaler, rf])
+
+# 5. Split Data (80-20)
+print("\nSplitting data into train/test sets...")
+train_data, test_data = df.randomSplit([0.8, 0.2], seed=42)
+
+print(f"Training set size: {train_data.count()}")
+print(f"Test set size: {test_data.count()}")
+
+# 6. Train Model
+print("\n" + "="*60)
+print("TRAINING RANDOM FOREST MODEL...")
+print("="*60)
+model = pipeline.fit(train_data)
+print("✓ Model training completed!")
+
+# 7. Make Predictions
+print("\nMaking predictions on test data...")
+predictions = model.transform(test_data)
+predictions.cache()
+
+# Show sample predictions
+print("\nSample Predictions:")
+predictions.select("Target", "prediction", "probability").show(20, truncate=False)
+
+# 8. Evaluate Model
+print("\n" + "="*60)
+print("MODEL EVALUATION METRICS")
+print("="*60)
+
+# Binary Classification Metrics (AUC-ROC)
+binary_evaluator = BinaryClassificationEvaluator(
+    labelCol="Target",
+    rawPredictionCol="rawPrediction",
+    metricName="areaUnderROC"
+)
+auc = binary_evaluator.evaluate(predictions)
+print(f"AUC-ROC: {auc:.4f}")
+
+# Multiclass Metrics
+mc_evaluator = MulticlassClassificationEvaluator(
+    labelCol="Target",
+    predictionCol="prediction"
+)
+
+accuracy = mc_evaluator.evaluate(predictions, {mc_evaluator.metricName: "accuracy"})
+precision = mc_evaluator.evaluate(predictions, {mc_evaluator.metricName: "weightedPrecision"})
+recall = mc_evaluator.evaluate(predictions, {mc_evaluator.metricName: "weightedRecall"})
+f1 = mc_evaluator.evaluate(predictions, {mc_evaluator.metricName: "f1"})
+
+print(f"Accuracy: {accuracy:.4f}")
+print(f"Weighted Precision: {precision:.4f}")
+print(f"Weighted Recall: {recall:.4f}")
+print(f"F1 Score: {f1:.4f}")
+
+# Confusion Matrix
+print("\nConfusion Matrix:")
+predictions.groupBy("Target", "prediction").count().orderBy("Target", "prediction").show()
+
+# 9. Feature Importance
+rf_model = model.stages[-1]
+feature_importance = rf_model.featureImportances
+
+print("\n" + "="*60)
+print("FEATURE IMPORTANCES")
+print("="*60)
+
+feature_importance_list = []
+for idx, importance in enumerate(feature_importance):
+    if idx < len(feature_cols):
+        feature_importance_list.append((feature_cols[idx], float(importance)))
+
+# Sort by importance
+feature_importance_list.sort(key=lambda x: x[1], reverse=True)
+
+for feature, importance in feature_importance_list:
+    print(f"{feature:20s}: {importance:.4f}")
+
+# 10. Save Model
+print("\n" + "="*60)
+print("SAVING MODEL")
+print("="*60)
+print(f"Saving model to: {MODEL_OUTPUT}")
+model.write().overwrite().save(MODEL_OUTPUT)
+print("✓ Model saved successfully!")
+
+# 11. Save Predictions Sample
+predictions_output = f"gs://{BUCKET_NAME}/predictions/predictions_sample"
+print(f"\nSaving sample predictions to: {predictions_output}")
+predictions.select("Timestamp", "Close", "Target", "prediction", "probability") \
+    .limit(1000) \
+    .coalesce(1) \
+    .write \
+    .mode("overwrite") \
+    .option("header", "true") \
+    .csv(predictions_output)
+
+predictions.unpersist()
+
+print("\n" + "="*60)
+print("TRAINING COMPLETED SUCCESSFULLY!")
+print("="*60)
+
+spark.stop()
