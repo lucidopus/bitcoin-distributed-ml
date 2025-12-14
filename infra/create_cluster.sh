@@ -1,8 +1,7 @@
-CLUSTER_NAME="bitcoin-cluster-dev"
-REGION="us-central1"
-ZONE="us-central1-a"
-PROJECT_ID="bitcoin-trend-prediction1"
-BUCKET_NAME="bitcoin-trend-prediction1-data"
+# Load environment variables
+if [ -f "$(dirname "$0")/../.env" ]; then
+    source "$(dirname "$0")/../.env"
+fi
 
 echo "Creating cluster: $CLUSTER_NAME in $PROJECT_ID..."
 
@@ -26,8 +25,3 @@ else
     echo "Cluster creation FAILED."
     exit 1
 fi
-
-
-# gcloud dataproc jobs submit pyspark gs://bitcoin-trend-prediction1-data/feature-engineering/feature-engineering.py \
-#     --cluster=bitcoin-cluster-dev \
-#     --region=us-central1

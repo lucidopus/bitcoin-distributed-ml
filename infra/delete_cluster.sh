@@ -1,6 +1,7 @@
-CLUSTER_NAME="bitcoin-cluster-dev"
-REGION="us-central1"
-PROJECT_ID="bitcoin-trend-prediction1"
+# Load environment variables
+if [ -f "$(dirname "$0")/../.env" ]; then
+    source "$(dirname "$0")/../.env"
+fi
 
 echo "Deleting cluster: $CLUSTER_NAME in $PROJECT_ID..."
 

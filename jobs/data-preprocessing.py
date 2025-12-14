@@ -6,8 +6,8 @@ from pyspark.sql.types import *
 import subprocess
 import os
 
-PROJECT_ID = "bitcoin-trend-prediction1"
-BUCKET_NAME = "bitcoin-trend-prediction1-data"
+PROJECT_ID = os.environ.get("PROJECT_ID")
+BUCKET_NAME = os.environ.get("BUCKET_NAME")
 INPUT_FILE = "bitcoin_data.csv"
 OUTPUT_FILE = "bitcoin_data_filled.csv"
 KAGGLE_FILE = "btcusd_1-min_data.csv"

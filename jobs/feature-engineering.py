@@ -1,9 +1,10 @@
+import os
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
 # --- CONFIGURATION ---
-BUCKET_NAME = "bitcoin-trend-prediction1-data"
+BUCKET_NAME = os.environ.get("BUCKET_NAME")
 INPUT_FILE = f"gs://{BUCKET_NAME}/bitcoin_data_filled.csv"
 OUTPUT_DIR = f"gs://{BUCKET_NAME}/feature_engineering_output"
 
