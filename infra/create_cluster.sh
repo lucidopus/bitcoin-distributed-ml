@@ -11,6 +11,7 @@ show_help() {
     echo ""
     echo "Options:"
     echo "  --workers N        Number of worker nodes (REQUIRED)"
+    echo "  --cluster-name NAME Name of the cluster (overrides env var)"
     echo "  --help             Show this help message"
     echo ""
 }
@@ -19,6 +20,7 @@ show_help() {
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --workers) NUM_WORKERS="$2"; shift ;;
+        --cluster-name) CLUSTER_NAME="$2"; shift ;;
         --help) show_help; exit 0 ;;
         *) echo "Unknown parameter passed: $1"; show_help; exit 1 ;;
     esac
