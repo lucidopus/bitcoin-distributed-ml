@@ -3,6 +3,8 @@ if [ -f "$(dirname "$0")/../.env" ]; then
     source "$(dirname "$0")/../.env"
 fi
 
+NUM_WORKERS=2
+
 echo "Creating cluster: $CLUSTER_NAME in $PROJECT_ID..."
 
 gcloud dataproc clusters create $CLUSTER_NAME \
@@ -10,7 +12,7 @@ gcloud dataproc clusters create $CLUSTER_NAME \
     --zone $ZONE \
     --master-machine-type n1-standard-2 \
     --master-boot-disk-size 50GB \
-    --num-workers 2 \
+    --num-workers $NUM_WORKERS \
     --worker-machine-type n1-standard-2 \
     --worker-boot-disk-size 50GB \
     --image-version 2.1-debian11 \
