@@ -69,3 +69,55 @@ We will run the full training pipeline four times, increasing the dataset size e
 * **Monitoring:** Use the Spark History Server to take screenshots of the DAG (Directed Acyclic Graph) and stage timings for the final report.
 
 ---
+
+## 6. Directory Structure
+
+bitcoin-spark-predictor/
+│
+├── README.md                 # Project overview, setup guide, and DoD.
+├── PROJECT_PLAN.md           # The detailed roadmap we created earlier.
+├── requirements.txt          # Python dependencies for local dev (pyspark, pandas, etc.)
+├── Makefile                  # Shortcuts for complex commands (e.g., `make cluster-up`)
+│
+├── conf/                     # Configuration files (YAML/JSON)
+│   ├── cluster_config.json   # Dataproc settings (machine types, # of workers)
+│   └── model_params.yaml     # Hyperparameters for LR, RF, GBT
+│
+├── data/                     # Local data (GitIgnore this!)
+│   ├── raw/                  # Raw CSVs for local testing
+│   └── processed/            # Local parquet files (for debugging only)
+│
+├── docs/                     # Documentation
+│   ├── architecture.png      # Diagram of the pipeline
+│   └── references/           # Papers or links (OpenML docs, etc.)
+│
+├── infra/                    # Infrastructure Management (Cluster Lifecycle)
+│   ├── create_cluster.sh     # Script to spin up Dataproc
+│   ├── delete_cluster.sh     # Script to tear down Dataproc
+│   └── init_actions.sh       # Bootstrap scripts (pip install on cluster nodes)
+│
+├── jobs/                     # Entry points for Spark Jobs (The "Main" files)
+│   ├── 01_ingest.py          # Data fetching (OpenML -> GCS)
+│   ├── 02_feature_eng.py     # The ETL & Feature Engineering script
+│   └── 03_train_models.py    # Main training script (runs all 3 models)
+│
+├── notebooks/                # Jupyter Notebooks for Analysis & Viz
+│   ├── 1.0-eda-initial.ipynb          # Initial data exploration
+│   ├── 2.0-scalability-analysis.ipynb # Visualization of cluster performance logs
+│   └── 3.0-model-evaluation.ipynb     # Confusion matrices & ROC curves
+│
+├── src/                      # Source Code (Modular Python Library)
+│   ├── __init__.py
+│   ├── utils.py              # Helper functions (Spark session builder, GCS paths)
+│   ├── features/
+│   │   ├── __init__.py
+│   │   └── transformers.py   # Custom Transformer classes (Window logic)
+│   └── models/
+│       ├── __init__.py
+│       ├── logistic.py       # Logistic Regression logic
+│       ├── random_forest.py  # RF logic
+│       └── gbt.py            # Gradient Boosted Trees logic
+│
+└── tests/                    # Unit tests
+    ├── test_features.py      # Test if window functions work correctly
+    └── test_models.py        # Test if models input/output shapes match
