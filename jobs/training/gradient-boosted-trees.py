@@ -1,6 +1,6 @@
 import time
 import os
-import json
+
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.ml.feature import VectorAssembler
@@ -104,22 +104,9 @@ result_record = {
     "timestamp": timestamp
 }
 
-result_json = json.dumps(result_record, indent=2)
+result_df = spark.createDataFrame([result_record])
+result_df.coalesce(1).write.mode("append").json(RESULTS_PATH)
 
-result_filename = f"gbt_results_{timestamp}.json"
-temp_path = f"{RESULTS_PATH}temp_{timestamp}/"
-
-spark.sparkContext.parallelize([result_json]).coalesce(1).saveAsTextFile(temp_path)
-
-hadoop_config = spark.sparkContext._jsc.hadoopConfiguration()
-fs = spark.sparkContext._jvm.org.apache.hadoop.fs.FileSystem.get(hadoop_config)
-src_path = spark.sparkContext._jvm.org.apache.hadoop.fs.Path(f"{temp_path}part-00000")
-dst_path = spark.sparkContext._jvm.org.apache.hadoop.fs.Path(f"{RESULTS_PATH}{result_filename}")
-fs.rename(src_path, dst_path)
-
-temp_fs_path = spark.sparkContext._jvm.org.apache.hadoop.fs.Path(temp_path)
-fs.delete(temp_fs_path, True)
-
-print(f"Results saved to: {RESULTS_PATH}{result_filename}")
+print(f"Results saved to {RESULTS_PATH}")
 
 spark.stop()
