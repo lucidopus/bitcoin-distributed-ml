@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored `jobs/feature-engineering.py` and `jobs/data-preprocessing.py` to use environment variables (`PROJECT_ID`, `BUCKET_NAME`) instead of hardcoded values
 - Updated training jobs (`gradient-boosted-trees.py`, `mlp.py`, `rf_spark.py`) to use `bitcoin_data_scaled.csv` as input source instead of feature engineered data
 - Refactored `gradient-boosted-trees.py` to use `randomSplit` for cleaner train/test splitting logic
+- Updated `jobs/data-scaling.py` to preserve original feature names in the output instead of adding a `scaled_` prefix
 
 ### Deprecated
 
