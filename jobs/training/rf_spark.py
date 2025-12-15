@@ -1,6 +1,6 @@
 """
 Bitcoin Random Forest Training - Submit to Existing Dataproc Cluster
-Single file solution that submits to your existing cluster: bitcoin-cluster-w2
+Single file solution that submits to your existing cluster: bitcoin-cluster-w4
 """
 
 import time
@@ -19,7 +19,7 @@ if not IS_DATAPROC:
 # CONFIGURATION
 PROJECT_ID = "bitcoin-trend-prediction1"
 REGION = "us-central1"
-CLUSTER_NAME = "bitcoin-cluster-w2"
+CLUSTER_NAME = "bitcoin-cluster-w4"
 BUCKET_NAME = "bitcoin-trend-prediction1-data"
 
 # TRAINING CODE (runs on Dataproc cluster)
@@ -35,7 +35,7 @@ def run_training():
     # Initialize Spark
     spark = SparkSession.builder.appName("Bitcoin_RF_Training").getOrCreate()
     
-    INPUT_PATH = f"gs://{BUCKET_NAME}/bitcoin_data_feature_engineered.csv"
+    INPUT_PATH = f"gs://{BUCKET_NAME}/bitcoin_data_scaled.csv"
     RESULTS_PATH = f"gs://{BUCKET_NAME}/results/"
     
     print(f"Reading data from {INPUT_PATH}...")
@@ -193,33 +193,39 @@ def submit_pyspark_job(script_path):
     return result
 
 
+def main():
+    """Main execution flow"""
+    if IS_DATAPROC:
+        # Running on Dataproc cluster - execute training
+        print("Running on Dataproc cluster - starting training...")
+        run_training()
+    else:
+        # Running locally - submit job to existing cluster
+        print(f"Submitting job to existing cluster: {CLUSTER_NAME}")
+        print(f"Project: {PROJECT_ID}")
+        print(f"Region: {REGION}")
+        print(f"Bucket: {BUCKET_NAME}\n")
+        
+        # Get the current script path
+        script_path = os.path.abspath(__file__)
+        gcs_script_path = "scripts/bitcoin_rf_training.py"
+        
+        # Step 1: Upload this script to GCS
+        print(f"[1/2] Uploading script to GCS...")
+        upload_script_to_gcs(script_path, gcs_script_path)
+        
+        # Step 2: Submit PySpark job to existing cluster
+        print(f"\n[2/2] Submitting job to cluster...")
+        try:
+            submit_pyspark_job(gcs_script_path)
+        except Exception as e:
+            print(f"\n Job submission failed: {e}")
+            print(f"\nTroubleshooting:")
+            print(f"  1. Check if cluster '{CLUSTER_NAME}' exists and is running")
+            print(f"  2. Verify the data file exists at: gs://{BUCKET_NAME}/bitcoin_data_scaled.csv")
+            print(f"  3. Check cluster logs in Cloud Console")
+            raise
 
-if IS_DATAPROC:
-    # Running on Dataproc cluster - execute training
-    print("Running on Dataproc cluster - starting training...")
-    run_training()
-else:
-    # Running locally - submit job to existing cluster
-    print(f"Submitting job to existing cluster: {CLUSTER_NAME}")
-    print(f"Project: {PROJECT_ID}")
-    print(f"Region: {REGION}")
-    print(f"Bucket: {BUCKET_NAME}\n")
-    
-    # Get the current script path
-    script_path = os.path.abspath(__file__)
-    gcs_script_path = "scripts/bitcoin_rf_training.py"
-    
-    # Step 1: Upload this script to GCS
-    print(f"[1/2] Uploading script to GCS...")
-    upload_script_to_gcs(script_path, gcs_script_path)
-    
-    # Step 2: Submit PySpark job to existing cluster
-    print(f"\n[2/2] Submitting job to cluster...")
-    try:
-        submit_pyspark_job(gcs_script_path)
-    except Exception as e:
-        print(f"\n Job submission failed: {e}")
-        print(f"\nTroubleshooting:")
-        print(f"  1. Check if cluster '{CLUSTER_NAME}' exists and is running")
-        print(f"  2. Verify the data file exists at: gs://{BUCKET_NAME}/bitcoin_data_feature_engineered.csv")
-        print(f"  3. Check cluster logs in Cloud Console")
+
+if __name__ == "__main__":
+    main()

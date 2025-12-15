@@ -9,12 +9,12 @@ from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 from pyspark.mllib.evaluation import MulticlassMetrics
 
 
+CLUSTER_NAME="bitcoin-cluster-dev"
+REGION="us-central1"
+ZONE="us-central1-a"
+PROJECT_ID="bitcoin-trend-prediction1"
+BUCKET_NAME="bitcoin-trend-prediction1-data"
 spark = SparkSession.builder.appName("Bitcoin_MLP_Training").getOrCreate()
-
-
-BUCKET_NAME = os.environ.get("BUCKET_NAME")
-if not BUCKET_NAME:
-    raise ValueError("BUCKET_NAME env var not found")
     
 INPUT_PATH = f"gs://{BUCKET_NAME}/bitcoin_data_scaled.csv"
 RESULTS_PATH = f"gs://{BUCKET_NAME}/results/"
@@ -61,20 +61,20 @@ num_features = len(feature_cols)
 hidden_layers = []
 
 layer_sizes = [128, 64, 32, 16, 8]
-for i in range(100):
+for i in range(15):
     hidden_layers.append(layer_sizes[i % len(layer_sizes)])
 
 
 layers = [num_features] + hidden_layers + [2]  
 
-print(f"MLP Architecture: {num_features} input features -> 100 hidden layers -> 2 output classes")
+print(f"MLP Architecture: {num_features} input features -> 15 hidden layers -> 2 output classes")
 
 
 mlp = MultilayerPerceptronClassifier(
     labelCol="Target",
     featuresCol="features",
     layers=layers,
-    maxIter=100,  
+    maxIter=10,  
     blockSize=128,  
     seed=42
 )
