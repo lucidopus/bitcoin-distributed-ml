@@ -3,6 +3,7 @@ import os
 
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
+from pyspark.sql.window import Window
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.classification import GBTClassifier
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
@@ -33,10 +34,35 @@ assembler = VectorAssembler(inputCols=feature_cols, outputCol="features")
 df_vec = assembler.transform(df)
 print("Feature assembly complete.")
 
-# Fixed train/test split
-train_data, test_data = df_vec.randomSplit([0.8, 0.2], seed=42)
+# Sequential train/test split (80/20)
+window_spec = Window.orderBy("Timestamp")
+df_with_row = df_vec.withColumn("row_idx", F.row_number().over(window_spec))
+total_count = df_with_row.count()
+train_count_limit = int(total_count * 0.8)
+
+train_data = df_with_row.filter(F.col("row_idx") <= train_count_limit).drop("row_idx")
+test_data = df_with_row.filter(F.col("row_idx") > train_count_limit).drop("row_idx")
 
 train_count = train_data.count()
+test_count = test_data.count()
+
+print(f"Total rows: {total_count}")
+print(f"Train row limit: {train_count_limit}")
+print(f"Actual Training rows: {train_count}")
+print(f"Actual Testing rows: {test_count}")
+
+# Verify Temporal Split
+train_max_date = train_data.agg(F.max("Timestamp")).collect()[0][0]
+test_min_date = test_data.agg(F.min("Timestamp")).collect()[0][0]
+
+print(f"Training Max Timestamp: {train_max_date}")
+print(f"Testing Min Timestamp: {test_min_date}")
+
+if train_max_date < test_min_date:
+    print("SUCCESS: Training data strictly precedes testing data.")
+else:
+    print("WARNING: Data leakage detected! Training data overlaps or succeeds testing data.")
+
 print(f"Data split complete. Training on {train_count} rows...")
 
 gbt = GBTClassifier(labelCol="Target", featuresCol="features", maxIter=10)
