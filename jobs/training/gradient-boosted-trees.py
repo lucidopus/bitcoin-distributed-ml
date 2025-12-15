@@ -68,22 +68,30 @@ metrics = MulticlassMetrics(predictionAndLabels)
 labels = [0.0, 1.0]
 classification_report = {}
 
-# Per-class metrics
-for label in labels:
+# Cache predictions to avoid recomputation
+predictions.cache()
+
+# Per-class metrics - FIX: Calculate support properly
+class_0_support = predictions.filter(F.col("Target") == 0.0).count()
+class_1_support = predictions.filter(F.col("Target") == 1.0).count()
+total_support = predictions.count()
+
+for i, label in enumerate(labels):
+    support = class_0_support if i == 0 else class_1_support
     classification_report[str(int(label))] = {
-        "precision": metrics.precision(label),
-        "recall": metrics.recall(label),
-        "f1-score": metrics.fMeasure(label, 1.0),
-        "support": predictions.filter(F.col("Target") == label).count()
+        "precision": float(metrics.precision(label)),
+        "recall": float(metrics.recall(label)),
+        "f1-score": float(metrics.fMeasure(label, 1.0)),
+        "support": support
     }
 
-# Overall metrics
-classification_report["accuracy"] = metrics.accuracy
+# Overall metrics - FIX: Convert to float and add support
+classification_report["accuracy"] = float(accuracy)
 classification_report["weighted avg"] = {
-    "precision": metrics.weightedPrecision,
-    "recall": metrics.weightedRecall,
-    "f1-score": metrics.weightedFMeasure(),
-    "support": predictions.count()
+    "precision": float(metrics.weightedPrecision),
+    "recall": float(metrics.weightedRecall),
+    "f1-score": float(metrics.weightedFMeasure()),
+    "support": total_support
 }
 
 timestamp = int(time.time())
@@ -96,7 +104,22 @@ result_record = {
     "timestamp": timestamp
 }
 
-result_df = spark.createDataFrame([result_record])
-result_df.coalesce(1).write.mode("append").json(RESULTS_PATH)
+result_json = json.dumps(result_record, indent=2)
+
+result_filename = f"gbt_results_{timestamp}.json"
+temp_path = f"{RESULTS_PATH}temp_{timestamp}/"
+
+spark.sparkContext.parallelize([result_json]).coalesce(1).saveAsTextFile(temp_path)
+
+hadoop_config = spark.sparkContext._jsc.hadoopConfiguration()
+fs = spark.sparkContext._jvm.org.apache.hadoop.fs.FileSystem.get(hadoop_config)
+src_path = spark.sparkContext._jvm.org.apache.hadoop.fs.Path(f"{temp_path}part-00000")
+dst_path = spark.sparkContext._jvm.org.apache.hadoop.fs.Path(f"{RESULTS_PATH}{result_filename}")
+fs.rename(src_path, dst_path)
+
+temp_fs_path = spark.sparkContext._jvm.org.apache.hadoop.fs.Path(temp_path)
+fs.delete(temp_fs_path, True)
+
+print(f"Results saved to: {RESULTS_PATH}{result_filename}")
 
 spark.stop()
