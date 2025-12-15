@@ -123,3 +123,6 @@ Thumbs.db
 
 # Project specific
 *.pptx
+
+# Ignore specific jobs
+jobs/eda.py
