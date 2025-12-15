@@ -7,10 +7,14 @@ import subprocess
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
-REGION="us-central1"
-ZONE="us-central1-a"
-PROJECT_ID="bitcoin-trend-prediction1"
-BUCKET_NAME="bitcoin-trend-prediction1-data"
+REGION = os.environ.get("REGION")
+ZONE = os.environ.get("ZONE")
+PROJECT_ID = os.environ.get("PROJECT_ID")
+BUCKET_NAME = os.environ.get("BUCKET_NAME")
+
+if not all([REGION, ZONE, PROJECT_ID, BUCKET_NAME]):
+    raise ValueError("One or more required environment variables (REGION, ZONE, PROJECT_ID, BUCKET_NAME) are missing.")
+
 spark = SparkSession.builder.appName("Bitcoin_EDA").getOrCreate()
 INPUT_PATH = f"gs://{BUCKET_NAME}/bitcoin_data_feature_engineered.csv"
 OUTPUT_IMAGE_DIR = f"gs://{BUCKET_NAME}/eda/"
