@@ -16,7 +16,7 @@ ZONE = "us-central1-a"
 PROJECT_ID = "bitcoin-trend-prediction1"
 BUCKET_NAME = "bitcoin-trend-prediction1-data"
 INPUT_PATH = f"gs://{BUCKET_NAME}/bitcoin_data_feature_engineered.csv"
-OUTPUT_PATH = f"gs://{BUCKET_NAME}/bitcoin_data_scaled.csv" # Final desired path
+OUTPUT_PATH = f"gs://{BUCKET_NAME}/data_scaling_output/" 
 
 spark = SparkSession.builder \
     .appName("Bitcoin-Standard-Scaling") \
