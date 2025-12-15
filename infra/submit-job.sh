@@ -10,8 +10,9 @@ show_help() {
     echo "Usage: $(basename "$0") [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  --job-name NAME    Name of the job file (e.g., eda.py). Must be in 'jobs/' dir. (REQUIRED)"
-    echo "  --help             Show this help message"
+    echo "  --job-name NAME       Name of the job file (e.g., eda.py). Must be in 'jobs/' dir. (REQUIRED)"
+    echo "  --cluster-name NAME   Name of the Dataproc cluster (Overrides CLUSTER_NAME from .env file)"
+    echo "  --help                Show this help message"
     echo ""
 }
 
@@ -19,6 +20,7 @@ show_help() {
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --job-name) JOB_NAME="$2"; shift ;;
+        --cluster-name) CLUSTER_NAME="$2"; shift ;;
         --help) show_help; exit 0 ;;
         *) echo "Unknown parameter passed: $1"; show_help; exit 1 ;;
     esac
@@ -28,6 +30,12 @@ done
 # Validate required arguments
 if [ -z "$JOB_NAME" ]; then
     echo "Error: --job-name argument is required."
+    show_help
+    exit 1
+fi
+
+if [ -z "$CLUSTER_NAME" ]; then
+    echo "Error: CLUSTER_NAME must be set via .env or --cluster-name argument."
     show_help
     exit 1
 fi
