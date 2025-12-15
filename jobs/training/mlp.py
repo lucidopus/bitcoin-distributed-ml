@@ -8,7 +8,7 @@ from pyspark.ml.classification import MultilayerPerceptronClassifier
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 from pyspark.mllib.evaluation import MulticlassMetrics
 
-    
+
 spark = SparkSession.builder.appName("Bitcoin_MLP_Training").getOrCreate()
 
 
@@ -16,7 +16,7 @@ BUCKET_NAME = os.environ.get("BUCKET_NAME")
 if not BUCKET_NAME:
     raise ValueError("BUCKET_NAME env var not found")
     
-INPUT_PATH = f"gs://{BUCKET_NAME}/bitcoin_data_scaled.csv"
+INPUT_PATH = f"gs://{BUCKET_NAME}/bitcoin_data_feature_engineered.csv"
 RESULTS_PATH = f"gs://{BUCKET_NAME}/results/"
 
 
