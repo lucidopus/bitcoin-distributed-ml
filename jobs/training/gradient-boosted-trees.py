@@ -26,11 +26,13 @@ df = spark.read.csv(INPUT_PATH, header=True, inferSchema=True)
 df = df.withColumn("Timestamp", F.to_timestamp("Timestamp"))
 print(f"Data read successfully. Initial count: {df.count()}")
 
-
 feature_cols = [
+    "Open", "High", "Low", "Close",
+    "Volume_(BTC)", "Volume_(Currency)", "Weighted_Price",
     "Feat_SMA_5", "Feat_SMA_10", "Feat_SMA_15", 
-    "Feat_GK_Vol", "Feat_Vol_Std", "Volume"
+    "Feat_GK_Vol", "Feat_Vol_Std"
 ]
+
 assembler = VectorAssembler(inputCols=feature_cols, outputCol="features")
 df_vec = assembler.transform(df)
 print("Feature assembly complete.")
