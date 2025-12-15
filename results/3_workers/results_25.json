@@ -54,5 +54,33 @@
         "rows": 972813,
         "time_seconds": 329.66128516197205,
         "timestamp": 1765821248
+    },
+    {
+        "accuracy": 0.5071048139998766,
+        "classification_report": {
+            "0": {
+                "support": null,
+                "f1-score": 0.0,
+                "recall": 0.0,
+                "precision": 0.0
+            },
+            "1": {
+                "support": null,
+                "f1-score": 0.6729522847903505,
+                "recall": 1.0,
+                "precision": 0.5071048139998766
+            },
+            "accuracy": null,
+            "weighted avg": {
+                "support": null,
+                "f1-score": 0.3412573432094027,
+                "recall": 0.5071048139998766,
+                "precision": 0.2571552923818494
+            }
+        },
+        "model": "Multilayer Perceptron",
+        "rows": 972813,
+        "time_seconds": 146.6887698173523,
+        "timestamp": 1765822469
     }
 ]
