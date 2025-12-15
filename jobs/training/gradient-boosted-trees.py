@@ -21,7 +21,7 @@ print(f"Reading data from {INPUT_PATH}...")
 df = spark.read.csv(INPUT_PATH, header=True, inferSchema=True)
 df = df.withColumn("Timestamp", F.to_timestamp("Timestamp"))
 print(f"Data read successfully. Initial count: {df.count()}")
-
+   
 feature_cols = [
     "Open", "High", "Low", "Close",
     "Volume_(BTC)", "Volume_(Currency)", "Weighted_Price",
