@@ -6,6 +6,7 @@ from pyspark.sql import functions as F
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.classification import GBTClassifier
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
+from pyspark.mllib.evaluation import MulticlassMetrics
 
     
 spark = SparkSession.builder.appName("Bitcoin_GBT_Training").getOrCreate()
@@ -55,12 +56,38 @@ evaluator = MulticlassClassificationEvaluator(labelCol="Target", predictionCol="
 accuracy = evaluator.evaluate(predictions)
 print(f"Test Accuracy: {accuracy}")
 
+# Generate Classification Report
+predictionAndLabels = predictions.select("prediction", "Target").rdd.map(lambda row: (float(row.prediction), float(row.Target)))
+metrics = MulticlassMetrics(predictionAndLabels)
+
+labels = [0.0, 1.0]
+classification_report = {}
+
+# Per-class metrics
+for label in labels:
+    classification_report[str(int(label))] = {
+        "precision": metrics.precision(label),
+        "recall": metrics.recall(label),
+        "f1-score": metrics.fMeasure(label, 1.0),
+        "support": predictions.filter(F.col("Target") == label).count()
+    }
+    
+# Overall metrics
+classification_report["accuracy"] = metrics.accuracy
+classification_report["weighted avg"] = {
+    "precision": metrics.weightedPrecision,
+    "recall": metrics.weightedRecall,
+    "f1-score": metrics.weightedFMeasure(),
+    "support": predictions.count()
+}
+
 timestamp = int(time.time())
 result_record = {
     "model": "Gradient Boosted Trees",
     "rows": train_count,
     "time_seconds": duration,
     "accuracy": accuracy,
+    "classification_report": classification_report,
     "timestamp": timestamp
 }
 
