@@ -1,8 +1,3 @@
-"""
-Bitcoin Random Forest Training - Submit to Existing Dataproc Cluster
-Single file solution that submits to your existing cluster: bitcoin-cluster-w4
-"""
-
 import time
 import os
 import json
@@ -12,19 +7,17 @@ import sys
 IS_DATAPROC = os.path.exists('/usr/local/share/google/dataproc')
 
 if not IS_DATAPROC:
-    # Running locally - import cluster management libraries
     from google.cloud import dataproc_v1
     from google.cloud import storage
 
-# CONFIGURATION
 PROJECT_ID = "bitcoin-trend-prediction1"
 REGION = "us-central1"
-CLUSTER_NAME = "bitcoin-cluster-w4"
+CLUSTER_NAME = "bitcoin-cluster-w3"
 BUCKET_NAME = "bitcoin-trend-prediction1-data"
 
-# TRAINING CODE (runs on Dataproc cluster)
-def run_training():
-    """Main training function that runs on Dataproc"""
+if IS_DATAPROC:
+    print("Running on Dataproc cluster - starting training...")
+    
     from pyspark.sql import SparkSession
     from pyspark.sql import functions as F
     from pyspark.ml.feature import VectorAssembler
@@ -41,6 +34,14 @@ def run_training():
     print(f"Reading data from {INPUT_PATH}...")
     df = spark.read.csv(INPUT_PATH, header=True, inferSchema=True)
     df = df.withColumn("Timestamp", F.to_timestamp("Timestamp"))
+    total_count = df.count()
+    print(f"Total rows in dataset: {total_count}")
+
+    df = df.orderBy(F.col("Timestamp").desc())
+    df = df.limit(int(total_count * 1.0))
+
+    sampled_count = df.count()
+    print(f"Using 100% of data: {sampled_count} rows")
     
     # Feature columns
     feature_cols = [
@@ -50,7 +51,6 @@ def run_training():
         "Feat_GK_Vol", "Feat_Vol_Std"
     ]
     
-    # Create feature vector
     assembler = VectorAssembler(inputCols=feature_cols, outputCol="features")
     df_vec = assembler.transform(df)
     
@@ -64,7 +64,6 @@ def run_training():
     train_count = train_data.count()
     print(f"Training on {train_count} rows...")
     
-    # Train Random Forest
     rf = RandomForestClassifier(
         labelCol="Target",
         featuresCol="features",
@@ -80,10 +79,8 @@ def run_training():
     
     print(f"Training Time: {duration:.2f} seconds")
     
-    # Make predictions
     predictions = model.transform(test_data)
     
-    # Evaluate accuracy
     evaluator = MulticlassClassificationEvaluator(
         labelCol="Target", 
         predictionCol="prediction", 
@@ -92,7 +89,6 @@ def run_training():
     accuracy = evaluator.evaluate(predictions)
     print(f"Test Accuracy: {accuracy:.4f}")
     
-    # Generate Classification Report
     predictionAndLabels = predictions.select("prediction", "Target").rdd.map(
         lambda row: (float(row.prediction), float(row.Target))
     )
@@ -136,96 +132,67 @@ def run_training():
     print(f"Results saved to {RESULTS_PATH}")
     spark.stop()
 
-# JOB SUBMISSION
-def upload_script_to_gcs(local_script_path, gcs_script_path):
-    """Upload this script to GCS"""
+else:
+    print(f"Submitting job to existing cluster: {CLUSTER_NAME}")
+    print(f"Project: {PROJECT_ID}")
+    print(f"Region: {REGION}")
+    print(f"Bucket: {BUCKET_NAME}\n")
+    
+    script_path = os.path.abspath(__file__)
+    gcs_script_path = "scripts/bitcoin_rf_training.py"
+    
+    print(f"[1/2] Uploading script to GCS...")
     client = storage.Client()
     bucket = client.bucket(BUCKET_NAME)
     blob = bucket.blob(gcs_script_path)
-    blob.upload_from_filename(local_script_path)
+    blob.upload_from_filename(script_path)
     print(f"Script uploaded to gs://{BUCKET_NAME}/{gcs_script_path}")
-
-
-def submit_pyspark_job(script_path):
-    """Submit PySpark job to existing Dataproc cluster"""
-    job_client = dataproc_v1.JobControllerClient(
-        client_options={"api_endpoint": f"{REGION}-dataproc.googleapis.com:443"}
-    )
     
-    job_config = {
-        "placement": {
-            "cluster_name": CLUSTER_NAME
-        },
-        "pyspark_job": {
-            "main_python_file_uri": f"gs://{BUCKET_NAME}/{script_path}",
-            "properties": {
-                "spark.executor.memory": "3g",
-                "spark.executor.cores": "2",
-                "spark.driver.memory": "3g"
+    print(f"\n[2/2] Submitting job to cluster...")
+    try:
+        job_client = dataproc_v1.JobControllerClient(
+            client_options={"api_endpoint": f"{REGION}-dataproc.googleapis.com:443"}
+        )
+        
+        job_config = {
+            "placement": {
+                "cluster_name": CLUSTER_NAME
+            },
+            "pyspark_job": {
+                "main_python_file_uri": f"gs://{BUCKET_NAME}/{gcs_script_path}",
+                "properties": {
+                    "spark.executor.memory": "3g",
+                    "spark.executor.cores": "2",
+                    "spark.driver.memory": "3g"
+                }
             }
         }
-    }
-    
-    print(f"Submitting PySpark job to cluster {CLUSTER_NAME}...")
-    operation = job_client.submit_job_as_operation(
-        request={
-            "project_id": PROJECT_ID,
-            "region": REGION,
-            "job": job_config
-        }
-    )
-    
-    print("Job submitted. Waiting for completion...")
-    result = operation.result()
-    print(f"Job finished with state: {result.status.state.name}")
-    
-    # Print links to view results
-    print(f"\n{'='*80}")
-    print("JOB COMPLETED SUCCESSFULLY")
-    print(f"{'='*80}")
-    print(f"\nView job details:")
-    print(f"https://console.cloud.google.com/dataproc/jobs/{result.reference.job_id}?region={REGION}&project={PROJECT_ID}")
-    print(f"\nAccess Spark UI:")
-    print(f"https://console.cloud.google.com/dataproc/clusters/{CLUSTER_NAME}?region={REGION}&project={PROJECT_ID}")
-    print(f"  → Click 'WEB INTERFACES' tab → 'Spark History Server'")
-    print(f"{'='*80}\n")
-    
-    return result
-
-
-def main():
-    """Main execution flow"""
-    if IS_DATAPROC:
-        # Running on Dataproc cluster - execute training
-        print("Running on Dataproc cluster - starting training...")
-        run_training()
-    else:
-        # Running locally - submit job to existing cluster
-        print(f"Submitting job to existing cluster: {CLUSTER_NAME}")
-        print(f"Project: {PROJECT_ID}")
-        print(f"Region: {REGION}")
-        print(f"Bucket: {BUCKET_NAME}\n")
         
-        # Get the current script path
-        script_path = os.path.abspath(__file__)
-        gcs_script_path = "scripts/bitcoin_rf_training.py"
+        print(f"Submitting PySpark job to cluster {CLUSTER_NAME}...")
+        operation = job_client.submit_job_as_operation(
+            request={
+                "project_id": PROJECT_ID,
+                "region": REGION,
+                "job": job_config
+            }
+        )
         
-        # Step 1: Upload this script to GCS
-        print(f"[1/2] Uploading script to GCS...")
-        upload_script_to_gcs(script_path, gcs_script_path)
+        print("Job submitted. Waiting for completion...")
+        result = operation.result()
+        print(f"Job finished with state: {result.status.state.name}")
         
-        # Step 2: Submit PySpark job to existing cluster
-        print(f"\n[2/2] Submitting job to cluster...")
-        try:
-            submit_pyspark_job(gcs_script_path)
-        except Exception as e:
-            print(f"\n Job submission failed: {e}")
-            print(f"\nTroubleshooting:")
-            print(f"  1. Check if cluster '{CLUSTER_NAME}' exists and is running")
-            print(f"  2. Verify the data file exists at: gs://{BUCKET_NAME}/bitcoin_data_scaled.csv")
-            print(f"  3. Check cluster logs in Cloud Console")
-            raise
-
-
-if __name__ == "__main__":
-    main()
+        print("JOB COMPLETED SUCCESSFULLY")
+        print(f"\nView job details:")
+        print(f"https://console.cloud.google.com/dataproc/jobs/{result.reference.job_id}?region={REGION}&project={PROJECT_ID}")
+        print(f"\nAccess Spark UI:")
+        print(f"https://console.cloud.google.com/dataproc/clusters/{CLUSTER_NAME}?region={REGION}&project={PROJECT_ID}")
+        print(f"  → Click 'WEB INTERFACES' tab → 'Spark History Server'")
+        print(f"{'='*80}\n")
+        
+    except Exception as e:
+        print(f"\nJob submission failed: {e}")
+        print(f"\nTroubleshooting:")
+        print(f"  1. Check if cluster '{CLUSTER_NAME}' exists and is running")
+        print(f"  2. Verify the data file exists at: gs://{BUCKET_NAME}/bitcoin_data_scaled.csv")
+        print(f"  3. Check cluster logs in Cloud Console")
+        raise
