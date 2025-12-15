@@ -14,7 +14,7 @@ BUCKET_NAME = os.environ.get("BUCKET_NAME")
 if not BUCKET_NAME:
     raise ValueError("BUCKET_NAME env var not found")
 
-INPUT_PATH = f"gs://{BUCKET_NAME}/bitcoin_data_feature_engineered.csv"
+INPUT_PATH = f"gs://{BUCKET_NAME}/bitcoin_data_scaled.csv"
 RESULTS_PATH = f"gs://{BUCKET_NAME}/results/"
 
 print(f"Reading data from {INPUT_PATH}...")
