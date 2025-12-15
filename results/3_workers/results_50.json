@@ -1,0 +1,30 @@
+[
+    {
+        "accuracy": 0.669713644389539,
+        "classification_report": {
+            "0": {
+                "support": null,
+                "f1-score": 0.7220352001328569,
+                "recall": 0.7567967449602367,
+                "precision": 0.6903267848459689
+            },
+            "1": {
+                "support": null,
+                "f1-score": 0.5931277220702927,
+                "recall": 0.5557617113355098,
+                "precision": 0.6358804239239022
+            },
+            "accuracy": null,
+            "weighted avg": {
+                "support": null,
+                "f1-score": 0.6661958637045988,
+                "recall": 0.6697136443895391,
+                "precision": 0.6667420501935224
+            }
+        },
+        "model": "Gradient Boosted Trees",
+        "rows": 1945424,
+        "time_seconds": 189.5751256942749,
+        "timestamp": 1765823242
+    }
+]
