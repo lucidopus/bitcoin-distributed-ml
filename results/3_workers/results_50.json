@@ -26,5 +26,33 @@
         "rows": 1945424,
         "time_seconds": 189.5751256942749,
         "timestamp": 1765823242
+    },
+    {
+        "accuracy": 0.565269697918555,
+        "classification_report": {
+            "0": {
+                "support": null,
+                "f1-score": 0.5535698419749953,
+                "recall": 0.5476543271887087,
+                "precision": 0.5596145456411835
+            },
+            "1": {
+                "support": null,
+                "f1-score": 0.5763719652958724,
+                "recall": 0.5823408674206163,
+                "precision": 0.5705241823312006
+            },
+            "accuracy": null,
+            "weighted avg": {
+                "support": null,
+                "f1-score": 0.5651497762388179,
+                "recall": 0.565269697918555,
+                "precision": 0.5651549452756737
+            }
+        },
+        "model": "Random Forest",
+        "rows": 1946485,
+        "time_seconds": 460.4314489364624,
+        "timestamp": 1765824459
     }
 ]
