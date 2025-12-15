@@ -1,5 +1,7 @@
 import time
 import os
+import argparse
+import sys
 
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
@@ -21,6 +23,35 @@ print(f"Reading data from {INPUT_PATH}...")
 df = spark.read.csv(INPUT_PATH, header=True, inferSchema=True)
 df = df.withColumn("Timestamp", F.to_timestamp("Timestamp"))
 print(f"Data read successfully. Initial count: {df.count()}")
+
+# Parse arguments to check for data percentage
+parser = argparse.ArgumentParser()
+parser.add_argument("--data-percentage", type=float, help="Percentage of data to use (0-100)")
+# Use parse_known_args to avoid errors if other spark args are passed
+args, _ = parser.parse_known_args()
+
+if args.data_percentage:
+    percentage = args.data_percentage / 100.0
+    print(f"DEBUG: Data percentage flag detected: {args.data_percentage}%")
+    
+    # Calculate cutoff based on ordered data
+    # valid_count = df.count() # Already got count above
+    limit_count = int(df.count() * percentage)
+    
+    print(f"DEBUG: Total records: {df.count()}")
+    print(f"DEBUG: Keeping top {args.data_percentage}% records.")
+    print(f"DEBUG: Target record count: {limit_count}")
+    
+    # Efficiently filter top N rows using ordering
+    # Using window function to assign row numbers
+    from pyspark.sql.window import Window
+    windowSpec = Window.orderBy("Timestamp")
+    df = df.withColumn("row_num", F.row_number().over(windowSpec))
+    df = df.filter(F.col("row_num") <= limit_count).drop("row_num")
+    
+    print(f"DEBUG: Filtered records: {df.count()}")
+else:
+    print("DEBUG: No data percentage limit applied. Using full dataset.")
    
 feature_cols = [
     "Open", "High", "Low", "Close",

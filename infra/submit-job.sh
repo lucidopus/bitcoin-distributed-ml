@@ -8,6 +8,7 @@ fi
 
 # Default values
 JOB_NAME=""
+DATA_PERCENTAGE=""
 
 show_help() {
     echo "Usage: $(basename "$0") [OPTIONS]"
@@ -15,6 +16,7 @@ show_help() {
     echo "Options:"
     echo "  --job-name NAME       Name of the job file (e.g., eda.py). Must be in 'jobs/' dir. (REQUIRED)"
     echo "  --cluster-name NAME   Name of the Dataproc cluster (Overrides CLUSTER_NAME from .env file)"
+    echo "  --data-percentage NUM Percentage of data to use (Required for jobs in 'training/' folder)"
     echo "  --help                Show this help message"
     echo ""
 }
@@ -24,6 +26,7 @@ while [[ "$#" -gt 0 ]]; do
     case $1 in
         --job-name) JOB_NAME="$2"; shift ;;
         --cluster-name) CLUSTER_NAME="$2"; shift ;;
+        --data-percentage) DATA_PERCENTAGE="$2"; shift ;;
         --help) show_help; exit 0 ;;
         *) echo "Unknown parameter passed: $1"; show_help; exit 1 ;;
     esac
@@ -41,6 +44,16 @@ if [ -z "$CLUSTER_NAME" ]; then
     echo "Error: CLUSTER_NAME must be set via .env or --cluster-name argument."
     show_help
     exit 1
+fi
+
+# Check if job is in training folder and enforce data-percentage
+if [[ "$JOB_NAME" == *"training/"* ]]; then
+    if [ -z "$DATA_PERCENTAGE" ]; then
+        echo "Error: --data-percentage argument is REQUIRED for jobs in the 'training/' folder."
+        show_help
+        exit 1
+    fi
+    echo "Training job detected. Using data percentage: $DATA_PERCENTAGE%"
 fi
 
 # Construct local job path
@@ -85,12 +98,19 @@ if [ -f "$ENV_FILE" ]; then
     done < <(grep -v '^[[:space:]]*$' "$ENV_FILE")
 fi
 
+# Prepare job arguments
+JOB_ARGS=""
+if [ ! -z "$DATA_PERCENTAGE" ]; then
+    JOB_ARGS="--data-percentage $DATA_PERCENTAGE"
+fi
+
 # Submit the job with all properties
 JOB_OUTPUT=$(gcloud dataproc jobs submit pyspark "$JOB_PATH" \
     --cluster=$CLUSTER_NAME \
     --region=$REGION \
     --properties="$SPARK_PROPERTIES" \
-    --format="value(reference.jobId)")
+    --format="value(reference.jobId)" \
+    -- $JOB_ARGS)
 
 JOB_ID=$JOB_OUTPUT
 
