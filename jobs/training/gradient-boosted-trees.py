@@ -9,7 +9,9 @@ from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 from pyspark.mllib.evaluation import MulticlassMetrics
 
     
+print("--- STARTING GBT SCRIPT ---")
 spark = SparkSession.builder.appName("Bitcoin_GBT_Training").getOrCreate()
+print("Spark Session created.")
 
 
 BUCKET_NAME = os.environ.get("BUCKET_NAME")
@@ -19,8 +21,10 @@ if not BUCKET_NAME:
 INPUT_PATH = f"gs://{BUCKET_NAME}/bitcoin_data_feature_engineered.csv"
 RESULTS_PATH = f"gs://{BUCKET_NAME}/results/"
 
+print(f"Reading data from {INPUT_PATH}...")
 df = spark.read.csv(INPUT_PATH, header=True, inferSchema=True)
 df = df.withColumn("Timestamp", F.to_timestamp("Timestamp"))
+print(f"Data read successfully. Initial count: {df.count()}")
 
 
 feature_cols = [
@@ -29,6 +33,7 @@ feature_cols = [
 ]
 assembler = VectorAssembler(inputCols=feature_cols, outputCol="features")
 df_vec = assembler.transform(df)
+print("Feature assembly complete.")
 
 train_fraction = 0.8
 
@@ -39,7 +44,7 @@ train_data = train_class_0.union(train_class_1)
 test_data = df_vec.join(train_data, on=df_vec.columns, how="left_anti")
 
 train_count = train_data.count()
-print(f"Training on {train_count} rows...")
+print(f"Data split complete. Training on {train_count} rows...")
 
 gbt = GBTClassifier(labelCol="Target", featuresCol="features", maxIter=10)
 
@@ -48,13 +53,17 @@ model = gbt.fit(train_data)
 end_time = time.time()
 
 duration = end_time - start_time
+duration = end_time - start_time
 print(f"Training Time: {duration:.2f} seconds")
+print("Model training complete.")
 
 
 predictions = model.transform(test_data)
 evaluator = MulticlassClassificationEvaluator(labelCol="Target", predictionCol="prediction", metricName="accuracy")
 accuracy = evaluator.evaluate(predictions)
+accuracy = evaluator.evaluate(predictions)
 print(f"Test Accuracy: {accuracy}")
+print("Evaluation complete.")
 
 # Generate Classification Report
 predictionAndLabels = predictions.select("prediction", "Target").rdd.map(lambda row: (float(row.prediction), float(row.Target)))
