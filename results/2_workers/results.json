@@ -27,8 +27,6 @@
         "time_seconds": 245.18445682525635,
         "timestamp": 1765771092
     },
-
-
     {
         "accuracy": 0.6178702688695058,
         "classification_report": {
@@ -57,9 +55,6 @@
         "time_seconds": 845.9707984924316,
         "timestamp": 1765772938
     },
-    
-
-
     {
         "accuracy": 0.5297375061957422,
         "classification_report": {
