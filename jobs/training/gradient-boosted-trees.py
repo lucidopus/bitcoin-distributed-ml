@@ -9,10 +9,7 @@ from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 from pyspark.mllib.evaluation import MulticlassMetrics
 
     
-print("--- STARTING GBT SCRIPT ---")
 spark = SparkSession.builder.appName("Bitcoin_GBT_Training").getOrCreate()
-print("Spark Session created.")
-
 
 BUCKET_NAME = os.environ.get("BUCKET_NAME")
 if not BUCKET_NAME:
