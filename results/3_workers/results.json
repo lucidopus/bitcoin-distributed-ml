@@ -1,0 +1,30 @@
+[
+    {
+        "accuracy": 0.5297375061957422,
+        "classification_report": {
+            "0": {
+                "support": null,
+                "f1-score": 0.69258615161124,
+                "recall": 1.0,
+                "precision": 0.5297375061957422
+            },
+            "1": {
+                "support": null,
+                "f1-score": 0.0,
+                "recall": 0.0,
+                "precision": 0.0
+            },
+            "accuracy": null,
+            "weighted avg": {
+                "support": null,
+                "f1-score": 0.3668888607802446,
+                "recall": 0.5297375061957422,
+                "precision": 0.28062182547048403
+            }
+        },
+        "model": "Multilayer Perceptron",
+        "rows": 3891392,
+        "time_seconds": 200.85234451293945,
+        "timestamp": 1765778665
+    }
+]
