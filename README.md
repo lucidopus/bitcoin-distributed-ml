@@ -44,7 +44,6 @@ The codebase is structured to separate infrastructural concerns from analytical 
 *   **`infra/`**: Helper scripts for cloud resource management.
     *   `create_cluster.sh`: Automates the provisioning of the Dataproc cluster with necessary initialization actions.
     *   `submit-job.sh`: A wrapper for submitting PySpark jobs to the cluster with environment-specific configurations.
-*   **`docs/`**: Project documentation and architectural plans.
 
 ## 🔬 Methodology
 
