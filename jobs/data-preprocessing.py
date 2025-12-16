@@ -20,7 +20,6 @@ def create_spark_session():
         .appName("Bitcoin Data Fill - Dataproc") \
         .getOrCreate()
     
-    # Check if running on Dataproc
     is_dataproc = os.path.exists('/usr/local/share/google/dataproc')
     
     if is_dataproc:
@@ -185,13 +184,13 @@ def fill_with_kaggle_and_forward(spark, df_original, df_kaggle):
     kaggle_filled = missing_count - df_filled.filter(F.col("Open").isNull()).count()
     print(f"✓ Filled from Kaggle: {kaggle_filled:,} rows")
     
-    # Forward fill using window functions
+    # Forward fill
     window_spec = Window.orderBy("Timestamp").rowsBetween(Window.unboundedPreceding, Window.currentRow)
     
     price_columns = ['Open', 'High', 'Low', 'Close', 'Weighted_Price']
     
     print(f"\nJOB 19-23: Applying forward fill with window functions...")
-    print("⚠️  This may take several minutes...")
+    print(" This may take several minutes...")
     
     for i, col_name in enumerate(price_columns, 1):
         print(f"  Processing column '{col_name}' ({i}/{len(price_columns)})...")
@@ -220,31 +219,26 @@ def fill_with_kaggle_and_forward(spark, df_original, df_kaggle):
         'zero_volume': missing_count - kaggle_filled
     }
     
-    print(f"\n{'='*70}")
     print("✓ DATA FILLING PHASE COMPLETE")
-    print(f"{'='*70}\n")
     
     return df_filled, stats
 
 def process_bitcoin_data(bucket_name, input_blob, output_blob, kaggle_blob):
     """Main processing function"""
-    print("="*70)
     print("Bitcoin Data Filler - Dataproc Edition")
-    print("="*70)
     
     spark = create_spark_session()
     
     try:
-        # Check if Kaggle file exists
         storage_client = storage.Client(project=PROJECT_ID)
         bucket = storage_client.bucket(bucket_name)
         kaggle_blob_obj = bucket.blob(kaggle_blob)
         
         if not kaggle_blob_obj.exists():
-            print(f"\n❌ ERROR: Kaggle file not found in GCS!")
+            print(f"\n ERROR: Kaggle file not found in GCS!")
             print(f"Expected: gs://{bucket_name}/{kaggle_blob}")
             print("\nPlease upload the Kaggle file:")
-            print(f"  gsutil cp btcusd_1-min_data.csv gs://{bucket_name}/")
+            print(f" gsutil cp btcusd_1-min_data.csv gs://{bucket_name}/")
             return None
         
         print(f"\n✓ Kaggle file found: gs://{bucket_name}/{kaggle_blob}")
@@ -256,15 +250,11 @@ def process_bitcoin_data(bucket_name, input_blob, output_blob, kaggle_blob):
         # Fill missing data
         df_filled, stats = fill_with_kaggle_and_forward(spark, df_original, df_kaggle)
         
-        # Print statistics
-        print("\n" + "="*70)
         print("FILLING STATISTICS")
-        print("="*70)
         print(f"Total missing timestamps:        {stats['total_missing']:,}")
         print(f"Filled from Kaggle (volume > 0): {stats['kaggle_filled']:,} ({stats['kaggle_filled']/stats['total_missing']*100:.2f}%)")
         print(f"Filled by forward fill:          {stats['forward_filled']:,} ({stats['forward_filled']/stats['total_missing']*100:.2f}%)")
         print(f"Volume set to 0:                 {stats['zero_volume']:,}")
-        print("="*70)
         
         # Check for remaining nulls
         print("\nJOB 25: Checking for remaining nulls...")
@@ -279,13 +269,13 @@ def process_bitcoin_data(bucket_name, input_blob, output_blob, kaggle_blob):
                     all_complete = False
         
         if all_complete:
-            print("  ✓ All columns complete!")
+            print(" All columns complete!")
         
         # Final count
         print(f"\nFinal row count: {df_filled.count():,}")
         
         # Write output
-        print(f"\nJOB 26-28: Writing to GCS...")
+        print(f"\n Writing to GCS...")
         output_path = f"gs://{bucket_name}/{output_blob}"
         
         # Write as single CSV file
@@ -307,7 +297,7 @@ def process_bitcoin_data(bucket_name, input_blob, output_blob, kaggle_blob):
         return df_filled
         
     except Exception as e:
-        print(f"\n❌ ERROR: {e}")
+        print(f"\n ERROR: {e}")
         import traceback
         traceback.print_exc()
         raise
@@ -333,12 +323,12 @@ if __name__ == "__main__":
         )
         
         if result is not None:
-            print("\n✅ SUCCESS! Your data is ready.")
+            print("\n SUCCESS! Your data is ready.")
         else:
-            print("\n❌ FAILED. Check error messages above.")
+            print("\n FAILED. Check error messages above.")
         
     except Exception as e:
-        print(f"\n❌ FATAL ERROR: {e}")
+        print(f"\n FATAL ERROR: {e}")
         import traceback
         traceback.print_exc()
         
