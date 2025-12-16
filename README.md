@@ -50,7 +50,7 @@ The codebase is structured to separate infrastructural concerns from analytical 
 The research workflow is implemented as follows:
 
 ### 1. Data Processing & Feature Engineering
-Raw historical market data is ingested and subjected to rigorous preprocessing. Missing values are handled via time-series specific imputation methods (backfill/forward-fill) to preserve temporal continuity. Feature engineering introduces technical indicators commonly used in financial econometrics, resulting in a high-dimensional feature space suitable for supervised learning.
+Raw historical market data is ingested and subjected to rigorous preprocessing. Missing values are handled via Kaggle data filling and forward-fill to preserve temporal continuity. Feature engineering introduces technical indicators commonly used in financial econometrics, resulting in a high-dimensional feature space suitable for supervised learning.
 
 ### 2. Predictive Modeling
 The project evaluates three distinct distributed classification algorithms:
