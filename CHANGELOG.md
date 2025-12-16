@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added data preprocessing script (`jobs/data-preprocessing.py`) for filling missing Bitcoin data using PySpark, integrating Kaggle data and forward fill on Dataproc
 - Added `.env.example` with placeholder environment variables for GCP configuration
 - Added `jobs/eda.py` for performing Exploratory Data Analysis (EDA) on Dataproc, generating and uploading plots (Class Balance, Correlation Matrix, Volatility Analysis) to GCS
+- Added `generate_plots.py` utility for generating evaluation plots
+- Added `data/` and `docs/` to `.gitignore` to prevent large datasets and documentation artifacts from being tracked
 
 ### Changed
 
@@ -28,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated training jobs (`gradient-boosted-trees.py`, `mlp.py`, `rf_spark.py`) to use `bitcoin_data_scaled.csv` as input source instead of feature engineered data
 - Refactored `gradient-boosted-trees.py` to use `randomSplit` for cleaner train/test splitting logic
 - Updated `jobs/data-scaling.py` to preserve original feature names in the output instead of adding a `scaled_` prefix
+- Updated `jobs/data-scaling.py` to output results to a directory structure
+- Updated `README.md` with academic tone, comprehensive methodology, and architecture details
 
 ### Deprecated
 
@@ -36,5 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deleted `jobs/standard-scaling.py` as scaling is now handled upstream or via other means
 
 ### Fixed
+
+- Fixed `jobs/feature-engineering.py` execution and unified results handling
 
 ### Security
