@@ -34,8 +34,6 @@ feature_cols = [
 assembler = VectorAssembler(inputCols=feature_cols, outputCol="features")
 df_vec = assembler.transform(df)
 
-
-
 class_counts = df_vec.groupBy("Target").count()
 total_count = df_vec.count()
 
@@ -98,14 +96,12 @@ evaluator = MulticlassClassificationEvaluator(
 accuracy = evaluator.evaluate(predictions)
 print(f"Test Accuracy: {accuracy:.4f}")
 
-# Generate Classification Report
 predictionAndLabels = predictions.select("prediction", "Target").rdd.map(lambda row: (float(row.prediction), float(row.Target)))
 metrics = MulticlassMetrics(predictionAndLabels)
 
 labels = [0.0, 1.0]
 classification_report = {}
 
-# Per-class metrics
 for label in labels:
     classification_report[str(int(label))] = {
         "precision": metrics.precision(label),
@@ -114,7 +110,6 @@ for label in labels:
         "support": predictions.filter(F.col("Target") == label).count()
     }
     
-# Overall metrics
 classification_report["accuracy"] = metrics.accuracy
 classification_report["weighted avg"] = {
     "precision": metrics.weightedPrecision,
