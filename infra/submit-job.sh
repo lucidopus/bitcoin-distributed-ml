@@ -22,7 +22,7 @@ show_help() {
 }
 
 
-while [[ "$
+while [[ "$#" -gt 0 ]]; do
     case $1 in
         --job-name) JOB_NAME="$2"; shift ;;
         --cluster-name) CLUSTER_NAME="$2"; shift ;;
@@ -80,7 +80,7 @@ if [ -f "$ENV_FILE" ]; then
     
     while IFS='=' read -r key value; do
         
-        [[ "$key" =~ ^
+        [[ "$key" =~ ^# ]] && continue
         [[ -z "$key" ]] && continue
         
         

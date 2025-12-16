@@ -17,7 +17,7 @@ show_help() {
 }
 
 
-while [[ "$#" -gt 0 ]]; do
+while [[ "$
     case $1 in
         --workers) NUM_WORKERS="$2"; shift ;;
         --cluster-name) CLUSTER_NAME="$2"; shift ;;
