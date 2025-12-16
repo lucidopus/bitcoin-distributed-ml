@@ -4,12 +4,13 @@ from pyspark.ml.feature import VectorAssembler, StandardScaler
 from pyspark.sql.functions import col
 import subprocess
 import sys
+import os
 
-CLUSTER_NAME = "bitcoin-cluster-w2"
-REGION = "us-central1"
-ZONE = "us-central1-a"
-PROJECT_ID = "bitcoin-trend-prediction1"
-BUCKET_NAME = "bitcoin-trend-prediction1-data"
+CLUSTER_NAME = os.environ.get("CLUSTER_NAME")
+REGION = os.environ.get("REGION")
+ZONE = os.environ.get("ZONE")
+PROJECT_ID = os.environ.get("PROJECT_ID")
+BUCKET_NAME = os.environ.get("BUCKET_NAME")
 INPUT_PATH = f"gs://{BUCKET_NAME}/bitcoin_data_feature_engineered.csv"
 OUTPUT_PATH = f"gs://{BUCKET_NAME}/data_scaling_output/" 
 
