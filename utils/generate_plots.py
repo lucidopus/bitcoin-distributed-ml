@@ -4,15 +4,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-# Create output directory
+
 output_dir = "evaluation/plots"
 os.makedirs(output_dir, exist_ok=True)
 
-# Load data
+
 with open("evaluation/results.json", "r") as f:
     data = json.load(f)
 
-# Helper to extract metric
+
 def get_metric(entry, metric="time_seconds"):
     if metric == "f1":
         return entry["classification_report"]["weighted avg"]["f1-score"]
@@ -20,15 +20,14 @@ def get_metric(entry, metric="time_seconds"):
         return entry["accuracy"]
     return entry[metric]
 
-# --- Plot 1: Time vs Workers (at 100% data) ---
+
 workers = [2, 3, 4]
 models = ["Gradient Boosted Trees", "Random Forest", "Multilayer Perceptron"]
 
-# Define model colors
 colors = {
-    "Gradient Boosted Trees": "#1f77b4",  # Blue
-    "Random Forest": "#2ca02c",          # Green
-    "Multilayer Perceptron": "#d62728"   # Red
+    "Gradient Boosted Trees": "#1f77b4",  
+    "Random Forest": "#2ca02c",          
+    "Multilayer Perceptron": "#d62728"   
 }
 
 time_data = {m: [] for m in models}
@@ -37,7 +36,7 @@ for w in workers:
     key = f"{w}_workers"
     if key in data and "100%" in data[key]:
         entries = data[key]["100%"]
-        # Create a dict for easy lookup by model
+        
         entry_map = {e["model"]: e for e in entries}
         for m in models:
             if m in entry_map:
@@ -62,7 +61,7 @@ plt.grid(True)
 plt.savefig(f"{output_dir}/plot1_time_vs_workers.png")
 plt.close()
 
-# --- Plot 2: Accuracy vs Data % (3 workers) ---
+
 percentages = ["25%", "50%", "75%", "100%"]
 pct_values = [25, 50, 75, 100]
 acc_data = {m: [] for m in models}
@@ -76,7 +75,7 @@ for pct in percentages:
             if m in entry_map:
                 acc_data[m].append(entry_map[m]["accuracy"])
             else:
-                acc_data[m].append(0) # Or nan
+                acc_data[m].append(0) 
     else:
         for m in models:
             acc_data[m].append(0)
@@ -102,7 +101,7 @@ plt.grid(axis='y')
 plt.savefig(f"{output_dir}/plot2_accuracy_vs_data.png")
 plt.close()
 
-# --- Plot 3: Computation Time vs Data % (3 workers) ---
+
 time_data_pct = {m: [] for m in models}
 
 for pct in percentages:
@@ -132,7 +131,7 @@ plt.grid(True)
 plt.savefig(f"{output_dir}/plot3_time_vs_data.png")
 plt.close()
 
-# --- Plot 4: Recall Scores on 100% data (Using 3_workers) ---
+
 recall_vals = []
 
 if "100%" in entries_3w:
