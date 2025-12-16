@@ -1,65 +1,105 @@
-# bitcoin-distributed-ml
+# Distributed Bitcoin Trend Prediction using Apache Spark and Google Cloud Dataproc
 
-**Distributed Bitcoin Trend Prediction using Apache Spark on Google Cloud Dataproc**
+**Abstract**
 
-This project demonstrates a scalable Machine Learning pipeline for predicting short-term Bitcoin price movements. It leverages **Apache Spark (PySpark)** for distributed data processing and model training, orchestrated on a **Google Cloud Dataproc** cluster.
+This repository contains the implementation of a scalable, distributed machine learning pipeline designed to predict short-term price movements of Bitcoin. Leveraging the parallel processing capabilities of **Apache Spark (PySpark)** and the managed infrastructure of **Google Cloud Dataproc**, this project addresses the computational challenges associated with high-frequency financial time-series analysis. The system orchestrates an end-to-end workflow—from data ingestion and distributed preprocessing to feature engineering and model training—demonstrating the application of big data technologies in quantitative finance.
 
-## 🏗 Architecture
+---
 
-The pipeline follows a standard ETL-Model workflow:
+## 🏗 System Architecture
 
-1.  **Ingestion**: Fetches raw Bitcoin historical data (OpenML) and stores it in Google Cloud Storage (GCS) - *Bronze Layer*.
-2.  **Preprocessing (Spark)**:
-    *   Loads data from GCS.
-    *   Handles missing values via time-series based imputation (Backfill/Forward-fill).
-    *   Performs feature engineering (Moving Averages, Volatility, Target generation).
-    *   Vectorizes features for MLLib.
-3.  **Model Training**: Trains distributed ML models (Logistic Regression, Random Forest, GBT) to predict price direction.
+The utilized pipeline adheres to a tiered architecture, processing data through distinct stages of refinement. The system is deployed on a Google Cloud Dataproc cluster, utilizing Google Cloud Storage (GCS) as a centralized data lake.
 
-## 📂 Project Structure
+```mermaid
+graph LR
+    subgraph Data Lake [Google Cloud Storage]
+        Raw[Raw Data] --> Preprocessed[Preprocessed Data]
+        Preprocessed --> Features[Feature Vectors]
+    end
 
-```text
-bitcoin-distributed-ml/
-├── docs/
-│   └── PROJECT_PLAN.md       # Detailed architectural roadmap
-├── infra/
-│   ├── create_cluster.sh     # Script to provision the Dataproc cluster
-│   └── delete_cluster.sh     # Script to tear down the cluster
-├── jobs/
-│   ├── data-preprocessing.py # Spark job for cleaning and vectorization
-│   └── feature-engineering.py# Feature generation logic
-├── README.md                 # This file
-└── requirements.txt          # Local python dependencies
+    subgraph Compute Cluster [Google Cloud Dataproc]
+        Ingest(Ingestion & Scaling)
+        FeatureEng(Feature Engineering)
+        Training(Distributed Training)
+    end
+
+    Raw --> Ingest
+    Ingest --> Preprocessed
+    Preprocessed --> FeatureEng
+    FeatureEng --> Features
+    Features --> Training
+    Training --> Models[Model Artifacts & Metrics]
 ```
 
-## 🚀 Getting Started
+## 📂 Repository Organization
+
+The codebase is structured to separate infrastructural concerns from analytical logic:
+
+*   **`jobs/`**: Contains the core PySpark scripts for the ETL and ML pipeline.
+    *   `data-preprocessing.py`: Handles initial cleaning and vectorization.
+    *   `data-scaling.py`: Applies scaling transformations to normalize feature distributions.
+    *   `feature-engineering.py`: Generates technical indicators (e.g., Moving Averages, Volatility) and target variables.
+    *   `eda.py`: Performs Exploratory Data Analysis on large-scale datasets.
+    *   `training/`: Specialized scripts for training distributed models (Gradient Boosted Trees, Multilayer Perceptron, Random Forest).
+*   **`infra/`**: Helper scripts for cloud resource management.
+    *   `create_cluster.sh`: Automates the provisioning of the Dataproc cluster with necessary initialization actions.
+    *   `submit-job.sh`: A wrapper for submitting PySpark jobs to the cluster with environment-specific configurations.
+*   **`docs/`**: Project documentation and architectural plans.
+
+## 🔬 Methodology
+
+The research workflow is implemented as follows:
+
+### 1. Data Processing & Feature Engineering
+Raw historical market data is ingested and subjected to rigorous preprocessing. Missing values are handled via time-series specific imputation methods (backfill/forward-fill) to preserve temporal continuity. Feature engineering introduces technical indicators commonly used in financial econometrics, resulting in a high-dimensional feature space suitable for supervised learning.
+
+### 2. Predictive Modeling
+The project evaluates three distinct distributed classification algorithms:
+*   **Gradient Boosted Trees (GBTs)**: Chosen for their effectiveness in capturing non-linear relationships in tabular data.
+*   **Random Forest**: Utilized as an ensemble baseline to reduce variance and assess feature importance.
+*   **Multilayer Perceptron (MLP)**: Implemented to explore the capacity of neural networks in modeling complex temporal dependencies.
+
+Each model is trained using Spark MLlib, enabling data parallelism across worker nodes.
+
+## 🚀 Infrastructure & Setup
 
 ### Prerequisites
+*   **Google Cloud Platform**: A valid project with Dataproc and GCS APIs enabled.
+*   **Google Cloud SDK**: CLI tool authenticated (`gcloud auth login`) and configured for your project.
+*   **Python 3.9+**: For local script execution and dependency management.
 
-*   **Google Cloud SDK (`gcloud`)**: Installed and authenticated (`gcloud auth login`).
-*   **Python 3.9+**: For local development.
-*   **GCP Project**: A valid Google Cloud project with Dataproc and GCS APIs enabled.
-
-### 1. Infrastructure Setup
-
-Provision a Dataproc cluster using the provided script. This sets up a master node and workers with the necessary initialization actions.
+### Cluster Provisioning
+The `infra/create_cluster.sh` script facilitates the reproducible deployment of the computing cluster.
 
 ```bash
 cd infra
 ./create_cluster.sh
 ```
 
-*Note: Ensure you have configured your project ID and region variables if they differ from the defaults in the script.*
+*Note: Ensure the `.env` file is correctly configured with your `PROJECT_ID`, `REGION`, and `CLUSTER_NAME` before execution.*
 
-### 2. Running Spark Jobs
+## 🧪 Experimental Workflow
 
-Submit jobs to the cluster using the `gcloud dataproc jobs submit` command.
+To reproduce the experimental results, jobs should be submitted sequentially to respect data dependencies.
 
-**Example: Feature Engineering**
+**1. Data Preprocessing**
+```bash
+./infra/submit-job.sh --job-name data-preprocessing.py --cluster-name <YOUR_CLUSTER_NAME>
+```
+
+**2. Feature Engineering**
+```bash
+./infra/submit-job.sh --job-name feature-engineering.py --cluster-name <YOUR_CLUSTER_NAME>
+```
+
+**3. Model Training**
+Training jobs require a data percentage argument to analyze model performance across varying dataset sizes.
 
 ```bash
-gcloud dataproc jobs submit pyspark jobs/feature-engineering.py \
-    --cluster=bitcoin-cluster \
-    --region=us-central1 \
-    --jars=gs://spark-lib/bigquery/spark-bigquery-latest_2.12.jar
+# Example: Train GBT on 100% of the data
+./infra/submit-job.sh --job-name training/gradient-boosted-trees.py --data-percentage 100
 ```
+
+## 📊 Results & Evaluation
+
+Model performance is evaluated based on standard classification metrics (Accuracy, Precision, Recall, F1-Score). Training artifacts and evaluation logs are automatically serialized and stored in the configured GCS bucket for post-hoc analysis.
