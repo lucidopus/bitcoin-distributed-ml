@@ -1,23 +1,17 @@
-
 if [ -f "$(dirname "$0")/../.env" ]; then
     source "$(dirname "$0")/../.env"
 fi
-
-
 NUM_WORKERS=""
-
 show_help() {
-    echo "Usage: $(basename "$0") [OPTIONS]"
-    echo ""
-    echo "Options:"
-    echo "  --workers N        Number of worker nodes (REQUIRED)"
-    echo "  --cluster-name NAME Name of the cluster (overrides env var)"
-    echo "  --help             Show this help message"
-    echo ""
+echo "Usage: $(basename "$0") [OPTIONS]"
+echo ""
+echo "Options:"
+echo "  --workers N        Number of worker nodes (REQUIRED)"
+echo "  --cluster-name NAME Name of the cluster (overrides env var)"
+echo "  --help             Show this help message"
+echo ""
 }
-
-
-while [[ "$
+while [[ "$#" -gt 0 ]]; do
     case $1 in
         --workers) NUM_WORKERS="$2"; shift ;;
         --cluster-name) CLUSTER_NAME="$2"; shift ;;
@@ -26,16 +20,12 @@ while [[ "$
     esac
     shift
 done
-
-
 if [ -z "$NUM_WORKERS" ]; then
     echo "Error: --workers argument is required."
     show_help
     exit 1
 fi
-
 echo "Creating cluster: $CLUSTER_NAME in $PROJECT_ID..."
-
 gcloud dataproc clusters create $CLUSTER_NAME \
     --region $REGION \
     --zone $ZONE \
@@ -49,7 +39,6 @@ gcloud dataproc clusters create $CLUSTER_NAME \
     --project $PROJECT_ID \
     --bucket $BUCKET_NAME \
     --scopes 'https://www.googleapis.com/auth/cloud-platform'
-
 if [ $? -eq 0 ]; then
     echo "Cluster created successfully."
 else
