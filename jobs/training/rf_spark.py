@@ -3,7 +3,6 @@ import os
 import json
 import sys
 
-# Check if running on Dataproc cluster or locally
 IS_DATAPROC = os.path.exists('/usr/local/share/google/dataproc')
 
 if not IS_DATAPROC:
@@ -97,7 +96,6 @@ if IS_DATAPROC:
     labels = [0.0, 1.0]
     classification_report = {}
     
-    # Per-class metrics
     for label in labels:
         classification_report[str(int(label))] = {
             "precision": metrics.precision(label),
@@ -106,7 +104,6 @@ if IS_DATAPROC:
             "support": predictions.filter(F.col("Target") == label).count()
         }
     
-    # Overall metrics
     classification_report["accuracy"] = metrics.accuracy
     classification_report["weighted avg"] = {
         "precision": metrics.weightedPrecision,
@@ -182,17 +179,7 @@ else:
         print(f"Job finished with state: {result.status.state.name}")
         
         print("JOB COMPLETED SUCCESSFULLY")
-        print(f"\nView job details:")
-        print(f"https://console.cloud.google.com/dataproc/jobs/{result.reference.job_id}?region={REGION}&project={PROJECT_ID}")
-        print(f"\nAccess Spark UI:")
-        print(f"https://console.cloud.google.com/dataproc/clusters/{CLUSTER_NAME}?region={REGION}&project={PROJECT_ID}")
-        print(f"  → Click 'WEB INTERFACES' tab → 'Spark History Server'")
-        print(f"{'='*80}\n")
         
     except Exception as e:
         print(f"\nJob submission failed: {e}")
-        print(f"\nTroubleshooting:")
-        print(f"  1. Check if cluster '{CLUSTER_NAME}' exists and is running")
-        print(f"  2. Verify the data file exists at: gs://{BUCKET_NAME}/bitcoin_data_scaled.csv")
-        print(f"  3. Check cluster logs in Cloud Console")
         raise
