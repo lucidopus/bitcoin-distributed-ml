@@ -8,12 +8,7 @@ from pyspark.ml.classification import MultilayerPerceptronClassifier
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 from pyspark.mllib.evaluation import MulticlassMetrics
 
-
-CLUSTER_NAME="bitcoin-cluster-dev"
-REGION="us-central1"
-ZONE="us-central1-a"
-PROJECT_ID="bitcoin-trend-prediction1"
-BUCKET_NAME="bitcoin-trend-prediction1-data"
+BUCKET_NAME = os.environ.get("BUCKET_NAME")
 spark = SparkSession.builder.appName("Bitcoin_MLP_Training").getOrCreate()
     
 INPUT_PATH = f"gs://{BUCKET_NAME}/bitcoin_data_scaled.csv"

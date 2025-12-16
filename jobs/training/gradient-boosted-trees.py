@@ -24,26 +24,20 @@ df = spark.read.csv(INPUT_PATH, header=True, inferSchema=True)
 df = df.withColumn("Timestamp", F.to_timestamp("Timestamp"))
 print(f"Data read successfully. Initial count: {df.count()}")
 
-# Parse arguments to check for data percentage
 parser = argparse.ArgumentParser()
 parser.add_argument("--data-percentage", type=float, help="Percentage of data to use (0-100)")
-# Use parse_known_args to avoid errors if other spark args are passed
 args, _ = parser.parse_known_args()
 
 if args.data_percentage:
     percentage = args.data_percentage / 100.0
     print(f"DEBUG: Data percentage flag detected: {args.data_percentage}%")
     
-    # Calculate cutoff based on ordered data
-    # valid_count = df.count() # Already got count above
     limit_count = int(df.count() * percentage)
     
     print(f"DEBUG: Total records: {df.count()}")
     print(f"DEBUG: Keeping top {args.data_percentage}% records.")
     print(f"DEBUG: Target record count: {limit_count}")
     
-    # Efficiently filter top N rows using ordering
-    # Using window function to assign row numbers
     from pyspark.sql.window import Window
     windowSpec = Window.orderBy("Timestamp")
     df = df.withColumn("row_num", F.row_number().over(windowSpec))
@@ -64,7 +58,6 @@ assembler = VectorAssembler(inputCols=feature_cols, outputCol="features")
 df_vec = assembler.transform(df)
 print("Feature assembly complete.")
 
-# Fixed train/test split
 train_data, test_data = df_vec.randomSplit([0.8, 0.2], seed=42)
 
 train_count = train_data.count()
@@ -90,7 +83,6 @@ accuracy = evaluator.evaluate(predictions)
 print(f"Test Accuracy: {accuracy}")
 print("Evaluation complete.")
 
-# Generate Classification Report
 predictionAndLabels = predictions.select("prediction", "Target").rdd.map(
     lambda row: (float(row.prediction), float(row.Target))
 )
@@ -98,11 +90,7 @@ metrics = MulticlassMetrics(predictionAndLabels)
 
 labels = [0.0, 1.0]
 classification_report = {}
-
-# Cache predictions to avoid recomputation
 predictions.cache()
-
-# Per-class metrics - FIX: Calculate support properly
 class_0_support = predictions.filter(F.col("Target") == 0.0).count()
 class_1_support = predictions.filter(F.col("Target") == 1.0).count()
 total_support = predictions.count()
@@ -116,7 +104,6 @@ for i, label in enumerate(labels):
         "support": support
     }
 
-# Overall metrics - FIX: Convert to float and add support
 classification_report["accuracy"] = float(accuracy)
 classification_report["weighted avg"] = {
     "precision": float(metrics.weightedPrecision),

@@ -9,10 +9,10 @@ if not IS_DATAPROC:
     from google.cloud import dataproc_v1
     from google.cloud import storage
 
-PROJECT_ID = "bitcoin-trend-prediction1"
-REGION = "us-central1"
-CLUSTER_NAME = "bitcoin-cluster-w3"
-BUCKET_NAME = "bitcoin-trend-prediction1-data"
+BUCKET_NAME = os.environ.get("BUCKET_NAME")
+CLUSTER_NAME = os.environ.get("CLUSTER_NAME")
+REGION = os.environ.get("REGION")
+PROJECT_ID = os.environ.get("PROJECT_ID")
 
 if IS_DATAPROC:
     print("Running on Dataproc cluster - starting training...")
