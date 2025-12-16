@@ -1,12 +1,12 @@
-#!/bin/bash
 
-# Load environment variables
+
+
 ENV_FILE="$(dirname "$0")/../.env"
 if [ -f "$ENV_FILE" ]; then
     source "$ENV_FILE"
 fi
 
-# Default values
+
 JOB_NAME=""
 DATA_PERCENTAGE=""
 
@@ -21,8 +21,8 @@ show_help() {
     echo ""
 }
 
-# Parse arguments
-while [[ "$#" -gt 0 ]]; do
+
+while [[ "$
     case $1 in
         --job-name) JOB_NAME="$2"; shift ;;
         --cluster-name) CLUSTER_NAME="$2"; shift ;;
@@ -33,7 +33,7 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-# Validate required arguments
+
 if [ -z "$JOB_NAME" ]; then
     echo "Error: --job-name argument is required."
     show_help
@@ -46,7 +46,7 @@ if [ -z "$CLUSTER_NAME" ]; then
     exit 1
 fi
 
-# Check if job is in training folder and enforce data-percentage
+
 if [[ "$JOB_NAME" == *"training/"* ]]; then
     if [ -z "$DATA_PERCENTAGE" ]; then
         echo "Error: --data-percentage argument is REQUIRED for jobs in the 'training/' folder."
@@ -56,7 +56,7 @@ if [[ "$JOB_NAME" == *"training/"* ]]; then
     echo "Training job detected. Using data percentage: $DATA_PERCENTAGE%"
 fi
 
-# Construct local job path
+
 JOB_PATH="$(dirname "$0")/../jobs/$JOB_NAME"
 
 if [ ! -f "$JOB_PATH" ]; then
@@ -70,26 +70,26 @@ echo "Target Cluster: $CLUSTER_NAME ($REGION)"
 echo "Bucket Context: $BUCKET_NAME"
 echo "----------------------------------------------------------------"
 
-# Build properties string - use CLUSTER mode so env vars work
+
 SPARK_PROPERTIES="spark.submit.deployMode=cluster"
 
-# Automatically read all variables from .env and pass them to Spark
+
 if [ -f "$ENV_FILE" ]; then
     echo "Loading environment variables from .env..."
     
-    # Read each line from .env, skip comments and empty lines
+    
     while IFS='=' read -r key value; do
-        # Skip comments and empty lines
-        [[ "$key" =~ ^#.*$ ]] && continue
+        
+        [[ "$key" =~ ^
         [[ -z "$key" ]] && continue
         
-        # Remove quotes from value if present
+        
         value=$(echo "$value" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
         
-        # Skip if value is empty
+        
         [[ -z "$value" ]] && continue
         
-        # Add to Spark properties for all components
+        
         SPARK_PROPERTIES="${SPARK_PROPERTIES},spark.yarn.appMasterEnv.${key}=${value}"
         SPARK_PROPERTIES="${SPARK_PROPERTIES},spark.executorEnv.${key}=${value}"
         SPARK_PROPERTIES="${SPARK_PROPERTIES},spark.driverEnv.${key}=${value}"
@@ -98,13 +98,13 @@ if [ -f "$ENV_FILE" ]; then
     done < <(grep -v '^[[:space:]]*$' "$ENV_FILE")
 fi
 
-# Prepare job arguments
+
 JOB_ARGS=""
 if [ ! -z "$DATA_PERCENTAGE" ]; then
     JOB_ARGS="--data-percentage $DATA_PERCENTAGE"
 fi
 
-# Submit the job with all properties
+
 JOB_OUTPUT=$(gcloud dataproc jobs submit pyspark "$JOB_PATH" \
     --cluster=$CLUSTER_NAME \
     --region=$REGION \
@@ -118,7 +118,7 @@ echo ""
 echo "Job ID: $JOB_ID"
 echo "Waiting for job to complete..."
 
-# Wait for job to finish
+
 gcloud dataproc jobs wait "$JOB_ID" --region=$REGION --project=$PROJECT_ID
 
 echo ""
@@ -126,10 +126,10 @@ echo "----------------------------------------------------------------"
 echo "Fetching job logs..."
 echo "----------------------------------------------------------------"
 
-# Get the cluster UUID for log path
+
 CLUSTER_UUID=$(gcloud dataproc clusters describe $CLUSTER_NAME --region=$REGION --format="value(clusterUuid)")
 
-# Try to fetch driver output
+
 LOG_PATH="gs://${BUCKET_NAME}/google-cloud-dataproc-metainfo/${CLUSTER_UUID}/jobs/${JOB_ID}/driveroutput.000000001"
 
 echo "Checking log path: $LOG_PATH"

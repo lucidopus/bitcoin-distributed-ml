@@ -1,9 +1,9 @@
-# Load environment variables
+
 if [ -f "$(dirname "$0")/../.env" ]; then
     source "$(dirname "$0")/../.env"
 fi
 
-# Default values
+
 CLUSTER_NAME=""
 
 show_help() {
@@ -15,8 +15,8 @@ show_help() {
     echo ""
 }
 
-# Parse arguments
-while [[ "$#" -gt 0 ]]; do
+
+while [[ "$
     case $1 in
         --cluster-name) CLUSTER_NAME="$2"; shift ;;
         --help) show_help; exit 0 ;;
@@ -25,7 +25,7 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-# Validate required arguments
+
 if [ -z "$CLUSTER_NAME" ]; then
     echo "Error: --cluster-name argument is required."
     show_help

@@ -1,9 +1,9 @@
-# Load environment variables
+
 if [ -f "$(dirname "$0")/../.env" ]; then
     source "$(dirname "$0")/../.env"
 fi
 
-# Default values
+
 NUM_WORKERS=""
 
 show_help() {
@@ -16,8 +16,8 @@ show_help() {
     echo ""
 }
 
-# Parse arguments
-while [[ "$#" -gt 0 ]]; do
+
+while [[ "$
     case $1 in
         --workers) NUM_WORKERS="$2"; shift ;;
         --cluster-name) CLUSTER_NAME="$2"; shift ;;
@@ -27,7 +27,7 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-# Validate required arguments
+
 if [ -z "$NUM_WORKERS" ]; then
     echo "Error: --workers argument is required."
     show_help
