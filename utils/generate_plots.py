@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 
-output_dir = "evaluation/plots"
+output_dir = "visualizations/evaluation-plots"
 os.makedirs(output_dir, exist_ok=True)
 
 
