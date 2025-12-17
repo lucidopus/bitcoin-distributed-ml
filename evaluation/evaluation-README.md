@@ -4,4 +4,4 @@ This directory is the destination for the analytical output of our machine learn
 
 ## File Descriptions
 
-- **`results.json`**: This JSON file is arguably the most critical log in our experiment. It aggregates the performance metrics (accuracy, precision, recall, F1-score, and training time) for every model run, across different configurations (like worker counts and data splits). It serves as the raw data source for our visualization scripts.
+- **`results.json`**: This JSON file is arguably the most critical log in our experiment. It aggregates the performance metrics (accuracy, precision, recall, F1-score, and training time) for every model run (Ones we're considering for final analysis), across different configurations (like worker counts and data splits). It serves as the raw data source for our visualization scripts.
