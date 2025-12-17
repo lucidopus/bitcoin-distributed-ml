@@ -16,7 +16,7 @@ show_help() {
 }
 
 
-while [[ "$
+while [[ "$#" -gt 0 ]]; do
     case $1 in
         --cluster-name) CLUSTER_NAME="$2"; shift ;;
         --help) show_help; exit 0 ;;
